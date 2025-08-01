@@ -1,3 +1,4 @@
+// pages/_document.js
 import { Html, Head, Main, NextScript } from 'next/document';
 
 export default function Document() {
@@ -9,8 +10,8 @@ export default function Document() {
         <meta name="theme-color" content="#000000" />
       </Head>
       <body>
-        <Main />
-        <NextScript />
+        <Main />           {/* This renders your app */}
+        <NextScript />     {/* This injects necessary Next.js scripts */}
       </body>
     </Html>
   );

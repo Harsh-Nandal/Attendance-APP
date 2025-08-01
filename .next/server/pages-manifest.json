@@ -1,1 +1,11 @@
-{"/_app":"pages/_app.js","/_document":"pages/_document.js","/":"pages/index.html","/_error":"pages/_error.js","/404":"pages/404.html"}
+{
+  "/_app": "pages/_app.js",
+  "/_error": "pages/_error.js",
+  "/_document": "pages/_document.js",
+  "/": "pages/index.js",
+  "/newStudent": "pages/newStudent.js",
+  "/success": "pages/success.js",
+  "/api/verify-face": "pages/api/verify-face.js",
+  "/api/register": "pages/api/register.js",
+  "/api/send-telegram": "pages/api/send-telegram.js"
+}

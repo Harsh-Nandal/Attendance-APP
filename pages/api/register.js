@@ -1,6 +1,6 @@
-import connectDB from '../../lib/mongodb';
-import User from '../../models/User';
-import { v2 as cloudinary } from 'cloudinary';
+import connectDB from "../../lib/mongodb";
+import User from "../../models/User";
+import { v2 as cloudinary } from "cloudinary";
 
 // Cloudinary Configuration
 cloudinary.config({
@@ -10,51 +10,58 @@ cloudinary.config({
 });
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ message: "Method Not Allowed" });
   }
 
   const { name, userId, role, imageData, faceDescriptor } = req.body;
 
-  // Validate input
-  if (!name || !userId || !role || !imageData || !faceDescriptor) {
+  // Basic Validation
+  if (
+    !name ||
+    !userId ||
+    !role ||
+    !imageData ||
+    !faceDescriptor ||
+    !Array.isArray(faceDescriptor)
+  ) {
     return res.status(400).json({
-      message: 'All fields are required including faceDescriptor.',
+      message: "All fields are required including faceDescriptor array.",
     });
   }
 
   try {
     await connectDB();
 
-    // Optional: Check for duplicate userId
+    // Check for duplicate user
     const existingUser = await User.findOne({ userId });
     if (existingUser) {
-      return res.status(409).json({ message: 'User ID already exists.' });
+      return res.status(409).json({ message: "User ID already exists." });
     }
 
     // Upload image to Cloudinary
-    const uploadRes = await cloudinary.uploader.upload(imageData, {
-      folder: 'mdci-faces',
+    const uploadResponse = await cloudinary.uploader.upload(imageData, {
+      folder: "mdci-faces",
     });
 
-    // Save to MongoDB
+    // Save user data to MongoDB
     const newUser = await User.create({
       name,
       userId,
       role,
-      imageUrl: uploadRes.secure_url,
-      faceDescriptor, // must be an array of numbers
+      imageUrl: uploadResponse.secure_url,
+      faceDescriptor, // already ensured to be an array
     });
 
     return res.status(200).json({
-      message: 'Registration successful',
+      message: "Registration successful",
       user: newUser,
     });
-  } catch (err) {
-    console.error('Registration Error:', err);
+  } catch (error) {
+    console.error("Registration Error:", error);
     return res.status(500).json({
-      message: 'Server error',
-      error: err.message,
+      message: "Server error. Please try again later.",
+      error: error.message,
     });
   }
 }

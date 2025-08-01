@@ -14,33 +14,45 @@ export default function Register() {
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const streamRef = useRef(null);
   const router = useRouter();
 
   useEffect(() => {
-    const loadModels = async () => {
+    const loadModelsAndStartCamera = async () => {
       const MODEL_URL = "/models";
       await Promise.all([
         faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
         faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
         faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
       ]);
-    };
 
-    loadModels();
-
-    navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-    });
+
+      // Wait a bit and then try auto capture
+      setTimeout(autoCapturePhoto, 1000);
+    };
+
+    loadModelsAndStartCamera();
+
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
   }, []);
 
-  const capturePhoto = async () => {
+  const autoCapturePhoto = async () => {
+    const video = videoRef.current;
     const canvas = canvasRef.current;
+
+    if (!video || !canvas) return;
+
     const context = canvas.getContext("2d");
-    context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-    const image = canvas.toDataURL("image/png");
-    setImageData(image);
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const detection = await faceapi
       .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions())
@@ -48,17 +60,25 @@ export default function Register() {
       .withFaceDescriptor();
 
     if (detection) {
-      setFaceDescriptor(Array.from(detection.descriptor)); // Convert Float32Array to array
+      const image = canvas.toDataURL("image/png");
+      setImageData(image);
+      setFaceDescriptor(Array.from(detection.descriptor));
+
+      // Stop video stream after detection
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
     } else {
-      alert("No face detected. Please try again.");
-      setFaceDescriptor([]);
+      setTimeout(() => {
+        autoCapturePhoto(); // Retry
+      }, 1500);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!faceDescriptor.length) {
-      alert("Please capture your face first.");
+      alert("Face not detected. Please wait or refresh.");
       return;
     }
 
@@ -123,22 +143,21 @@ export default function Register() {
             </select>
 
             <div className={styles.camera}>
-              <video
-                ref={videoRef}
-                width="300"
-                height="200"
-                autoPlay
-                playsInline
-              />
+              {!imageData && (
+                <video
+                  ref={videoRef}
+                  width="300"
+                  height="200"
+                  autoPlay
+                  playsInline
+                />
+              )}
               <canvas
                 ref={canvasRef}
                 width="300"
                 height="200"
                 style={{ display: "none" }}
               />
-              <button type="button" onClick={capturePhoto}>
-                📸 Capture Image
-              </button>
             </div>
 
             {imageData && (

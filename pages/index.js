@@ -1,4 +1,3 @@
-// ✅ Home.js
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -16,6 +15,7 @@ export default function Home() {
 
   const handleClose = () => setShowPopup(false);
 
+  // Load face-api models
   useEffect(() => {
     const loadModels = async () => {
       const MODEL_URL = "/models";
@@ -26,6 +26,7 @@ export default function Home() {
     loadModels();
   }, []);
 
+  // Start webcam
   useEffect(() => {
     navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
       if (videoRef.current) {
@@ -34,12 +35,14 @@ export default function Home() {
     });
   }, []);
 
+  // Handle PWA install prompt
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setInstallPrompt(e);
     };
     const handleAppInstalled = () => setIsInstalled(true);
+
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
 
@@ -48,10 +51,7 @@ export default function Home() {
     }
 
     return () => {
-      window.removeEventListener(
-        "beforeinstallprompt",
-        handleBeforeInstallPrompt
-      );
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
@@ -113,17 +113,18 @@ export default function Home() {
           body: JSON.stringify({
             name: result.user.name,
             role: result.user.role,
-            userId: result.user.userId, // ✅ this is required
+            userId: result.user.userId,
             imageData,
           }),
         });
 
+        // ✅ Fixed: updated query param to imageData (instead of captured)
         router.push(
-          `/success?name=${result.user.name}&role=${result.user.role}&image=${
+          `/success?name=${encodeURIComponent(result.user.name)}&role=${encodeURIComponent(
+            result.user.role
+          )}&userId=${encodeURIComponent(result.user.userId)}&image=${encodeURIComponent(
             result.user.imageUrl
-          }&userId=${result.user.userId}&captured=${encodeURIComponent(
-            imageData
-          )}`
+          )}&imageData=${encodeURIComponent(imageData)}`
         );
       } else {
         setShowPopup(true);

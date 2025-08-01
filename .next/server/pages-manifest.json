@@ -4,8 +4,8 @@
   "/_document": "pages/_document.js",
   "/": "pages/index.js",
   "/newStudent": "pages/newStudent.js",
-  "/success": "pages/success.js",
   "/api/verify-face": "pages/api/verify-face.js",
+  "/success": "pages/success.js",
   "/api/register": "pages/api/register.js",
   "/api/send-telegram": "pages/api/send-telegram.js"
 }

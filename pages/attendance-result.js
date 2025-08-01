@@ -1,5 +1,6 @@
 // pages/Attendance-result.js
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function AttendanceResult() {
@@ -44,6 +45,8 @@ export default function AttendanceResult() {
             <p><strong>Status:</strong> {message}</p>
           </div>
         </div>
+        <Link href={".."}>
+        Home</Link>
       </div>
     </main>
   );

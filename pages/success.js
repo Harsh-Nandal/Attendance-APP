@@ -7,9 +7,10 @@ export default function SuccessPage() {
   const [userId, setUserId] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
-  const [captured, setCaptured] = useState("");
+  const [imageData, setImageData] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -17,17 +18,20 @@ export default function SuccessPage() {
     const uid = params.get("userId");
     const uname = params.get("name");
     const urole = params.get("role");
-    const img = params.get("captured");
+    const img = params.get("imageData");
 
     if (uid && uname && urole && img) {
       setUserId(uid);
       setName(uname);
       setRole(urole);
-      setCaptured(img);
+      setImageData(img);
+    } else {
+      alert("Missing data. Please register again.");
+      router.push("/");
     }
 
     setLoading(false);
-  }, []);
+  }, [router]);
 
   const handleSubmit = async () => {
     if (!userId) {
@@ -47,8 +51,8 @@ export default function SuccessPage() {
       const result = await res.json();
 
       router.push(
-        `/attendance-result?userId=${userId}&name=${name}&role=${role}&captured=${encodeURIComponent(
-          captured
+        `/attendance-result?userId=${userId}&name=${name}&role=${role}&imageData=${encodeURIComponent(
+          imageData
         )}&message=${encodeURIComponent(result.message)}`
       );
     } catch (error) {
@@ -75,9 +79,9 @@ export default function SuccessPage() {
         <h1 className="title">🎉 Attendance Details</h1>
 
         <div className="card">
-          {captured && (
+          {imageData && (
             <img
-              src={decodeURIComponent(captured)}
+              src={decodeURIComponent(imageData)}
               alt="Captured Face"
               style={{
                 borderRadius: "12px",
@@ -103,8 +107,8 @@ export default function SuccessPage() {
           >
             {submitting ? "⏳ Submitting..." : "📥 Submit Attendance"}
           </button>
-          <Link href={".."}>
-          HOme</Link>
+
+          <Link href="/">🏠 Home</Link>
         </div>
       </div>
     </main>

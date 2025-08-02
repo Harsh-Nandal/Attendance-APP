@@ -2,10 +2,10 @@ const withPWA = require("next-pwa")({
   dest: "public",
   register: true,
   skipWaiting: true,
-  disable: process.env.NODE_ENV === "development", // Disable in dev
+  disable: process.env.NODE_ENV === "development", // disable PWA in dev
   runtimeCaching: [
     {
-      // ✅ Exclude API POST routes from being cached
+      // ✅ Avoid caching POST API routes (e.g., face detection, registration)
       urlPattern: /^\/api\/.*$/i,
       handler: "NetworkOnly",
       method: "POST",
@@ -15,7 +15,10 @@ const withPWA = require("next-pwa")({
       handler: "CacheFirst",
       options: {
         cacheName: "google-fonts",
-        expiration: { maxEntries: 4, maxAgeSeconds: 31536000 },
+        expiration: {
+          maxEntries: 4,
+          maxAgeSeconds: 31536000,
+        },
       },
     },
     {
@@ -23,28 +26,45 @@ const withPWA = require("next-pwa")({
       handler: "CacheFirst",
       options: {
         cacheName: "jsdelivr",
-        expiration: { maxEntries: 10, maxAgeSeconds: 31536000 },
+        expiration: {
+          maxEntries: 10,
+          maxAgeSeconds: 31536000,
+        },
       },
     },
     {
-      urlPattern: /^\/$/i, // Cache root page
+      urlPattern: /^\/$/i,
       handler: "NetworkFirst",
       options: {
         cacheName: "start-url",
-        expiration: { maxEntries: 1, maxAgeSeconds: 86400 },
+        expiration: {
+          maxEntries: 1,
+          maxAgeSeconds: 86400,
+        },
       },
     },
     {
-      urlPattern: /^.*$/i, // Cache all other files
+      urlPattern: /^.*$/i,
       handler: "StaleWhileRevalidate",
       options: {
         cacheName: "general-cache",
-        expiration: { maxEntries: 200, maxAgeSeconds: 86400 },
+        expiration: {
+          maxEntries: 200,
+          maxAgeSeconds: 86400,
+        },
       },
     },
   ],
 });
 
 module.exports = withPWA({
-  // add other Next.js config here if needed
+  // 🛠 Fix for face-api.js fs import error in client-side code
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        fs: false,
+      };
+    }
+    return config;
+  },
 });

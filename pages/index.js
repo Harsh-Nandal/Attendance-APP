@@ -82,10 +82,7 @@ export default function Home() {
     setLoading(true);
     try {
       const detection = await faceapi
-        .detectSingleFace(
-          videoRef.current,
-          new faceapi.TinyFaceDetectorOptions()
-        )
+        .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions())
         .withFaceLandmarks()
         .withFaceDescriptor();
 
@@ -106,31 +103,30 @@ export default function Home() {
 
       const result = await res.json();
 
-      if (result.success) {
+      if (result.success && result.user) {
+        const { name, role, userId, imageUrl } = result.user;
+
+        localStorage.setItem("uid", userId); // 🔐 Store UID for consistency
+
         await fetch("/api/send-telegram", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: result.user.name,
-            role: result.user.role,
-            userId: result.user.userId,
-            imageData,
-          }),
+          body: JSON.stringify({ name, role, userId, imageData }),
         });
 
-        // ✅ Fixed: updated query param to imageData (instead of captured)
         router.push(
-          `/success?name=${encodeURIComponent(result.user.name)}&role=${encodeURIComponent(
-            result.user.role
-          )}&userId=${encodeURIComponent(result.user.userId)}&image=${encodeURIComponent(
-            result.user.imageUrl
+          `/success?name=${encodeURIComponent(name)}&role=${encodeURIComponent(
+            role
+          )}&userId=${encodeURIComponent(userId)}&image=${encodeURIComponent(
+            imageUrl
           )}&imageData=${encodeURIComponent(imageData)}`
         );
       } else {
+        console.warn("Face not recognized or no user data returned.");
         setShowPopup(true);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error during face recognition:", err);
       alert("Error occurred during attendance.");
     } finally {
       setLoading(false);
@@ -138,14 +134,13 @@ export default function Home() {
   };
 
   return (
-    <main className="main-container">
+    <main className="h-screen w-screen flex flex-col items-center justify-center bg-gray-100 overflow-hidden" style={{textAlign:"center"}}> 
       {showPopup && (
         <div className="popupOverlay">
           <div className="popupBox">
             <h2>Welcome!</h2>
             <p>
-              You were not detected <br />
-              Please choose your option:
+              You were not detected <br /> Please choose your option:
             </p>
             <div className="buttons">
               <Link href="/newStudent">
@@ -162,25 +157,15 @@ export default function Home() {
 
       <img src="/logo.png" alt="Logo" className="logo" />
 
-      <div className="camera-circle">
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="camera-feed"
-        />
+      <div className="camera-circle" >
+        <video ref={videoRef} autoPlay playsInline muted className="camera-feed" />
       </div>
 
       <h1 className="heading">
         Welcome <br /> to <br /> MDCI
       </h1>
 
-      <button
-        className="attendance-btn"
-        onClick={handleAttendance}
-        disabled={loading}
-      >
+      <button className="attendance-btn" onClick={handleAttendance} disabled={loading}>
         {loading ? "Detecting..." : "Mark Your Daily Attendance"}
       </button>
 
@@ -190,12 +175,7 @@ export default function Home() {
         </button>
       )}
 
-      {loading && (
-        <div className="loader-overlay">
-          <div className="spinner"></div>
-          <p>Detecting your face...</p>
-        </div>
-      )}
+      
     </main>
   );
 }

@@ -28,12 +28,14 @@ export default function Register() {
 
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       streamRef.current = stream;
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play();
+          setTimeout(autoCapturePhoto, 1500);
+        };
       }
-
-      // Wait a bit and then try auto capture
-      setTimeout(autoCapturePhoto, 1000);
     };
 
     loadModelsAndStartCamera();
@@ -51,7 +53,7 @@ export default function Register() {
 
     if (!video || !canvas) return;
 
-    const context = canvas.getContext("2d");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const detection = await faceapi
@@ -61,24 +63,27 @@ export default function Register() {
 
     if (detection) {
       const image = canvas.toDataURL("image/png");
-      setImageData(image);
-      setFaceDescriptor(Array.from(detection.descriptor));
+      const descriptor = Array.from(detection.descriptor);
 
-      // Stop video stream after detection
+      console.log("✅ Face detected:", descriptor);
+
+      setImageData(image);
+      setFaceDescriptor(descriptor);
+
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
     } else {
-      setTimeout(() => {
-        autoCapturePhoto(); // Retry
-      }, 1500);
+      console.log("❌ No face detected. Retrying...");
+      setTimeout(autoCapturePhoto, 1500);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!faceDescriptor.length) {
-      alert("Face not detected. Please wait or refresh.");
+
+    if (!name || !userId || !imageData || !faceDescriptor?.length) {
+      alert("⚠️ FRONTEND: Missing form data or face not detected.");
       return;
     }
 
@@ -87,28 +92,34 @@ export default function Register() {
     try {
       const res = await fetch("/api/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ name, userId, role, imageData, faceDescriptor }),
       });
 
       const result = await res.json();
-      if (res.ok) {
+      console.log("📡 Response status:", res.status);
+      console.log("📦 Response body:", result);
+
+      if (res.status === 200) {
         router.push({
           pathname: "/success",
-          query: { name, role, imageData },
+          query: { name, role, imageData, userId }, // ✅ userId added here
         });
       } else {
-        alert(result.message || "Something went wrong");
-        setLoading(false);
+        alert("⚠️ BACKEND: " + result.message);
       }
-    } catch (error) {
-      alert("An error occurred. Please try again.");
+    } catch (err) {
+      console.error("🚨 Fetch error:", err);
+      alert("🚨 FRONTEND: Network error");
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className={styles.container}>
+    <div className='h-screen w-screen flex flex-col items-center justify-center bg-gray-100 overflow-hidden'>
       {loading ? (
         <div className={styles.loader}>Submitting...</div>
       ) : (
@@ -123,7 +134,6 @@ export default function Register() {
               onChange={(e) => setName(e.target.value)}
               required
             />
-
             <input
               type="text"
               className={styles.inputField}
@@ -132,7 +142,6 @@ export default function Register() {
               onChange={(e) => setUserId(e.target.value)}
               required
             />
-
             <select
               className={styles.inputField}
               value={role}

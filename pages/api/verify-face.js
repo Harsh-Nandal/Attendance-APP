@@ -39,11 +39,15 @@ export default async function handler(req, res) {
     });
 
     if (bestMatch) {
-      return res.status(200).json({ success: true, user: {
-        name: bestMatch.name,
-        role: bestMatch.role,
-        imageUrl: bestMatch.imageUrl,
-      } });
+      return res.status(200).json({
+        success: true,
+        user: {
+          name: bestMatch.name,
+          role: bestMatch.role,
+          userId: bestMatch.userId.toString(), // ✅ Fix: Include userId
+          imageUrl: bestMatch.imageUrl,
+        },
+      });
     } else {
       return res.status(200).json({ success: false });
     }

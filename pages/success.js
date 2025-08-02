@@ -20,13 +20,15 @@ export default function SuccessPage() {
     const urole = params.get("role");
     const img = params.get("imageData");
 
+    console.log("🔍 Params:", { uid, uname, urole, img });
+
     if (uid && uname && urole && img) {
       setUserId(uid);
       setName(uname);
       setRole(urole);
       setImageData(img);
     } else {
-      alert("Missing data. Please register again.");
+      alert("⚠️ FRONTEND: Missing data. Please register again.");
       router.push("/");
     }
 
@@ -74,7 +76,7 @@ export default function SuccessPage() {
   }
 
   return (
-    <main className="success-page">
+    <main className=" h-screen w-screen flex flex-col items-center justify-center bg-gray-100 overflow-hidden">
       <div className="card-container">
         <h1 className="title">🎉 Attendance Details</h1>
 
@@ -83,22 +85,21 @@ export default function SuccessPage() {
             <img
               src={decodeURIComponent(imageData)}
               alt="Captured Face"
-              style={{
-                borderRadius: "12px",
-                maxWidth: "100%",
-                marginBottom: "1rem",
-              }}
+              className="captured-image"
             />
           )}
-          <p>
-            <strong>Name:</strong> {name}
-          </p>
-          <p>
-            <strong>ID:</strong> {userId}
-          </p>
-          <p>
-            <strong>Role:</strong> {role}
-          </p>
+
+          <div className="info">
+            <p>
+              <span>Name:</span> {name}
+            </p>
+            <p>
+              <span>ID:</span> {userId}
+            </p>
+            <p>
+              <span>Role:</span> {role}
+            </p>
+          </div>
 
           <button
             className="submit-btn"
@@ -108,7 +109,9 @@ export default function SuccessPage() {
             {submitting ? "⏳ Submitting..." : "📥 Submit Attendance"}
           </button>
 
-          <Link href="/">🏠 Home</Link>
+          <Link href="/" className="home-link">
+            🏠 Back to Home
+          </Link>
         </div>
       </div>
     </main>

@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import styles from "../styles/Register.module.css";
@@ -11,10 +12,13 @@ export default function Register() {
   const [imageData, setImageData] = useState("");
   const [faceDescriptor, setFaceDescriptor] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [faceNotFound, setFaceNotFound] = useState(false);
+  const [detecting, setDetecting] = useState(true);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+  const retryCount = useRef(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -33,7 +37,7 @@ export default function Register() {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           videoRef.current.play();
-          setTimeout(autoCapturePhoto, 1500);
+          tryAutoCapture();
         };
       }
     };
@@ -47,35 +51,54 @@ export default function Register() {
     };
   }, []);
 
-  const autoCapturePhoto = async () => {
+  const tryAutoCapture = async () => {
+    if (retryCount.current >= 5) {
+      setDetecting(false);
+      setFaceNotFound(true);
+      return;
+    }
+
+    const success = await attemptCapture();
+    if (!success) {
+      retryCount.current += 1;
+      setTimeout(tryAutoCapture, 2000);
+    }
+  };
+
+  const attemptCapture = async () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-
-    if (!video || !canvas) return;
+    if (!video || !canvas) return false;
 
     const context = canvas.getContext("2d", { willReadFrequently: true });
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const detection = await faceapi
-      .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions())
+      .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
       .withFaceLandmarks()
       .withFaceDescriptor();
 
     if (detection) {
       const image = canvas.toDataURL("image/png");
       const descriptor = Array.from(detection.descriptor);
-
-      console.log("✅ Face detected:", descriptor);
-
       setImageData(image);
       setFaceDescriptor(descriptor);
+      setFaceNotFound(false);
+      setDetecting(false);
 
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
-    } else {
-      console.log("❌ No face detected. Retrying...");
-      setTimeout(autoCapturePhoto, 1500);
+      return true;
+    }
+    return false;
+  };
+
+  const handleManualCapture = async () => {
+    setFaceNotFound(false);
+    const success = await attemptCapture();
+    if (!success) {
+      setFaceNotFound(true);
     }
   };
 
@@ -83,43 +106,38 @@ export default function Register() {
     e.preventDefault();
 
     if (!name || !userId || !imageData || !faceDescriptor?.length) {
-      alert("⚠️ FRONTEND: Missing form data or face not detected.");
+      alert("⚠️ Please ensure all fields are filled and your face is detected.");
       return;
     }
 
     setLoading(true);
-
     try {
       const res = await fetch("/api/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, userId, role, imageData, faceDescriptor }),
       });
 
       const result = await res.json();
-      console.log("📡 Response status:", res.status);
-      console.log("📦 Response body:", result);
 
       if (res.status === 200) {
         router.push({
           pathname: "/success",
-          query: { name, role, imageData, userId }, // ✅ userId added here
+          query: { name, role, imageData, userId },
         });
       } else {
         alert("⚠️ BACKEND: " + result.message);
       }
     } catch (err) {
-      console.error("🚨 Fetch error:", err);
-      alert("🚨 FRONTEND: Network error");
+      console.error("🚨 FRONTEND: Network error", err);
+      alert("🚨 Network error. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className='h-screen w-screen flex flex-col items-center justify-center bg-gray-100 overflow-hidden'>
+    <div className="h-screen w-screen flex flex-col items-center justify-center bg-gray-100 overflow-auto p-4">
       {loading ? (
         <div className={styles.loader}>Submitting...</div>
       ) : (
@@ -152,25 +170,32 @@ export default function Register() {
             </select>
 
             <div className={styles.camera}>
-              {!imageData && (
-                <video
-                  ref={videoRef}
-                  width="300"
-                  height="200"
-                  autoPlay
-                  playsInline
-                />
-              )}
-              <canvas
-                ref={canvasRef}
-                width="300"
-                height="200"
-                style={{ display: "none" }}
-              />
+              {!imageData && <video ref={videoRef} width="300" height="200" autoPlay muted />}
+              <canvas ref={canvasRef} width="300" height="200" style={{ display: "none" }} />
             </div>
+
+            {detecting && !imageData && (
+              <p className="text-blue-500 text-sm mt-2">🔍 Trying to detect face automatically...</p>
+            )}
+
+            {faceNotFound && (
+              <p className="text-red-600 text-sm mt-2">
+                ⚠️ Face not detected. Click "Capture Image" again or adjust lighting.
+              </p>
+            )}
 
             {imageData && (
               <img src={imageData} alt="Captured" className={styles.preview} />
+            )}
+
+            {!imageData && (
+              <button
+                type="button"
+                className="bg-blue-600 text-white px-4 py-2 mt-3 rounded"
+                onClick={handleManualCapture}
+              >
+                📸 Capture Image
+              </button>
             )}
 
             <button type="submit" className={styles.submitBtn}>

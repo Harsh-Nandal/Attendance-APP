@@ -6,8 +6,8 @@ export default async function handler(req, res) {
 
   const { name, role, userId, imageData } = req.body;
 
-  const BOT_TOKEN = '8430452006:AAEgmLpUCqPCLLUaK-WxWvyz5iMXPOAgef0'; // 🔐 Replace with .env in production
-  const CHAT_ID = '6251710308'; // 🆔 Replace this with your group or user ID
+  const BOT_TOKEN = '7898870624:AAFrTSIpeNNLJ4pv9s3y83KyBry4iuTkCAs'; // 🔐 Replace with .env in production
+  const CHAT_ID = '6693681914'; // 🆔 Replace this with your group or user ID
 
   try {
     // Get current date & time
